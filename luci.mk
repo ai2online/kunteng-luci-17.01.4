@@ -12,32 +12,8 @@ LUCI_DEFAULTS:=$(notdir $(wildcard ${CURDIR}/root/etc/uci-defaults/*))
 LUCI_PKGARCH?=$(if $(realpath src/Makefile),,all)
 
 # Language code titles
-LUCI_LANG.ca=Català (Catalan)
-LUCI_LANG.cs=Čeština (Czech)
-LUCI_LANG.de=Deutsch (German)
-LUCI_LANG.el=Ελληνικά (Greek)
-LUCI_LANG.en=English
-LUCI_LANG.es=Español (Spanish)
-LUCI_LANG.fr=Français (French)
-LUCI_LANG.he=עִבְרִית (Hebrew)
-LUCI_LANG.hu=Magyar (Hungarian)
-LUCI_LANG.it=Italiano (Italian)
-LUCI_LANG.ja=日本語 (Japanese)
-LUCI_LANG.ko=한국어 (Korean)
-LUCI_LANG.ms=Bahasa Melayu (Malay)
-LUCI_LANG.no=Norsk (Norwegian)
-LUCI_LANG.pl=Polski (Polish)
-LUCI_LANG.pt-br=Português do Brasil (Brazialian Portuguese)
-LUCI_LANG.pt=Português (Portuguese)
-LUCI_LANG.ro=Română (Romanian)
-LUCI_LANG.ru=Русский (Russian)
-LUCI_LANG.sk=Slovenčina (Slovak)
-LUCI_LANG.sv=Svenska (Swedish)
-LUCI_LANG.tr=Türkçe (Turkish)
-LUCI_LANG.uk=украї́нська (Ukrainian)
-LUCI_LANG.vi=Tiếng Việt (Vietnamese)
 LUCI_LANG.zh-cn=中文 (Chinese)
-LUCI_LANG.zh-tw=臺灣華語 (Taiwanese)
+
 
 # Submenu titles
 LUCI_MENU.col=1. Collections
