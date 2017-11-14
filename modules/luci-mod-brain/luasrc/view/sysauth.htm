@@ -1,0 +1,234 @@
+<%
+    local OEM = require "ktapi.oem"
+    local ktWifi = require "ktapi.ktWifi"
+    local ktUtil = require "ktapi.ktUtil"
+    local ktNetwork = require "ktapi.ktNetwork"
+
+    local firmwareInfo = ktUtil.getFirmwareInfo()
+    local lanInfo = ktNetwork.getLanInfo()
+    local wanInfo = ktNetwork.getWanInfo()
+
+    local routerMac        = ktUtil.officalMac(lanInfo.macaddr) or "unknow"
+    local romVersion    = firmwareInfo.version or "0.0.0"
+    local boardName        = (firmwareInfo.board_name):gsub("\n", "") or "unknow"
+
+    local wifi0            = ktWifi.get_wifi_net("2.4G") or ""
+    local wifi1            = ktWifi.get_wifi_net("5G") or ""
+
+    if REQUEST_URI:find("admin/logout", 1, true) then
+        luci.http.redirect(luci.dispatcher.build_url())
+    end
+%>
+<!DOCTYPE html>
+<html lang="<%=luci.i18n.context.lang%>">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+    <meta http-equiv="X-UA-COMPATIBLE" content="IE=edge,chrome=1"/>
+    <!--<meta HTTP-EQUIV="Pragma"   CONTENT="no-cache">    -->
+    <!--<meta HTTP-EQUIV="Cache-Control"   CONTENT="no-cache">    -->
+    <!--<meta HTTP-EQUIV="Expires"   CONTENT="0"> -->
+    <!--[if lt IE 9]
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]>-->
+
+    <title><%=OEM.WEBSITE_TIELE%></title>
+    <link rel="shortcut icon" href="<%=media%>/favicon.ico">
+    <link rel="stylesheet" type="text/css" href="<%=resource%>/css/style.css">
+    <script type="text/javascript" src="<%=resource%>/js/jquery-2.2.3.min.js"></script>
+    <script type="text/javascript" src="<%=resource%>/js/xhr.js"></script>
+    <script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+    <script type="text/javascript" src="<%=resource%>/js/toast.js"></script>
+</head>
+    
+<body class="loginbg"  onkeydown='onKeyDown();'>    
+    <div class="header">
+        <div class="logicon"><i><img src="<%=resource%>/images/wirelesslog.png" alt=""/></i></div>
+        <h4><%=OEM.WEBSITE_AUTH%></h4>
+    </div>
+
+    <div class="login_cont">
+        <div class="login_cont1" style="height:240px;">
+            <p>
+                <span class="pic1"><img src="<%=resource%>/images/bn_internet.png" alt=""/></span>
+                <span class="pic2"><img id="inet_status" src="<%=resource%>/images/bn_inet_link.png" alt=""/></span>
+                <span class="decpic pic3" style="background:url('<%=resource%>/images/bn_route.png') no-repeat;">
+                    <i class="lan wan"><img src="<%=resource%>/images/port_link.png" id="wan_port" alt="" style="display:none"/></i>
+                    <%if boardName ~= "ZC9525" then%>
+                    <i class="lan"><img src="<%=resource%>/images/port_unlink.png" id="lan_port4" alt=""/></i>
+                    <i class="lan lan2"><img src="<%=resource%>/images/port_unlink.png" id="lan_port3" alt=""/></i>
+                    <i class="lan lan3"><img src="<%=resource%>/images/port_unlink.png" id="lan_port2" alt=""/></i>
+                    <%if boardName ~= "ZC9526" and boardName ~= "HC5962" then%>
+                    <i class="lan lan4"><img src="<%=resource%>/images/port_unlink.png" id="lan_port1" alt=""/></i>
+                    <%end
+                    else%>
+                    <i class="lan"><img src="<%=resource%>/images/port_unlink.png" id="lan_port1" alt=""/></i>
+                    <i class="lan lan2"><img src="<%=resource%>/images/port_unlink.png" id="lan_port2" alt=""/></i>
+                    <i class="lan lan3"><img src="<%=resource%>/images/port_unlink.png" id="lan_port3" alt=""/></i>
+                    <i class="lan lan4"><img src="<%=resource%>/images/port_unlink.png" id="lan_port4" alt=""/></i>
+                    <%end%>
+                </span>
+                <span class="pic4"><img src="<%=resource%>/images/bn_computer.png" alt=""/></span>
+            </p>
+            <ul style="width:100%;">
+                <li class="li1" id="speed"><span>获取中...</span></li>
+                <li class="li2" id="ssid">
+                <%if wifi0.ssid then%>
+                    <span style='width:355px;'>
+                        <em> 2.4G:<%=wifi0.ssid%> </em>
+                        <%if wifi1.ssid  then%>
+                        <em>&nbsp;|&nbsp;</em>
+                        <em> 5G:<%=wifi1.ssid%></em>
+                        <%end%>
+                    </span>
+                <%end%>
+                </li>
+                <li class="li3" id="session"><span>0台</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="login_cont_1">
+        <ul id="info" class="login_info">
+            <li class="bl0" id="login_ip"><em>外网IP 0.0.0.0</em></li>
+            <li id="login_boardName">产品型号 <%=boardName%></li>
+            <li id="login_romVersion">系统版本 <%=romVersion%></li>
+            <li id="login_routerMac">设备MAC <%=routerMac%></li>
+            <li id="login_time">运行时间 0d 0h 0m 0s<%=%></li>
+        </ul>
+    </div>
+
+    <form id="loginform" name="loginform" method="post" action="<%=pcdata(luci.http.getenv("REQUEST_URI"))%>">
+        <div class="login_info">            
+            <input style="display:none" type="text" name="luci_username" value="<%=duser%>" />
+            <p><input type="text" value="输入路由器管理密码" name="luci_password" id="passwd" style="color:#999;"></p>            
+            <p><button onclick="check_form(loginform)" id="save">登录</button></p>
+            <%- if fuser then %>
+                <script type="text/javascript">
+                    var T_alert = new Toast();    
+                    T_alert._css.lineHeight = "40px";
+                    T_alert.show("密码错误", 1000);
+                </script>
+            <% end -%>
+        </div>
+    </form>
+
+
+<script type="text/javascript">
+    var outsideIpaddr = "";
+    
+    $(function(){
+        var waninfo = "<%=wanInfo.proto%>";
+        var wanProto = "自动获取";
+        
+        switch (waninfo){
+            case "dhcp":
+                wanProto = "自动获取";
+                break;
+            case "pppoe" :
+                wanProto = "宽带拨号";
+                break;
+            case "static" :
+                wanProto = "静态IP";
+                break;
+            case "relay" :
+                wanProto = "无线中继";
+                break;
+        }
+        
+        $("#speed").html("<span>" + wanProto + "</span>");
+
+    })
+    
+    function onKeyDown(){
+        e=arguments.callee.caller.arguments[0] || window.event;
+        if (e.keyCode == 13){
+            check_form(loginform);
+        }
+        
+        if (e.keyCode == 116) {  
+            window.location = "http://" + window.location.hostname ;
+        }
+
+    }
+    
+    function check_form(obj){
+        if(obj.luci_password.value==""){
+            obj.luci_password.focus();
+            return false;
+        }
+        obj.submit();
+
+    }    
+    
+    function textFill(input,str) {
+        //var originalvalue = input.val();
+        var originalvalue = str;
+        input.focus(function () {
+            input.attr('type','password');
+            if ($.trim(input.val()) == originalvalue) {
+                input.val('');
+            }
+        });
+        input.blur(function () {
+            if ($.trim(input.val()) == '') {
+                input.attr('type','text');
+                input.val(originalvalue);
+            }
+        });
+    };    
+    
+    function renderPort(data){
+        //console.log(data);
+        $.each(data,function(i,ele){
+            if(i == "wan"){
+                if(ele == "1"){
+                    $("#wan_port").css("display","inline-block")
+                }else{
+                    $("#wan_port").css("display","none")
+                }
+            }else{
+                var num = i.replace(/[^0-9]/ig, "");
+                if(ele == "1") {
+                    $('#lan_port'+num).attr("src","<%=resource%>/images/port_link.png")
+                }else{
+                    $('#lan_port'+num).attr("src","<%=resource%>/images/port_unlink.png")
+                }
+            }
+        });
+    }
+    
+    textFill($('#passwd'),'输入路由器管理密码');
+    
+    XHR.poll(30, '/cgi-bin/luci/guest/login', {status: 1},
+        function (x, data) {            
+            var runTime = data.runTime;
+            var day = Math.floor(runTime / (60 * 60 * 24));
+            var hours = Math.floor(runTime % (60 * 60 * 24) / (60 * 60));
+            var minutes = Math.floor(runTime % (60 * 60) / 60);
+            var seconds = Math.floor(runTime % 60);
+            var wanIPaddr = (data.wanipaddr) ? data.wanipaddr : "0.0.0.0";
+
+            $("#session").html("<span>" + data.sessionNum + "台" + "</span>");
+            $("#login_time").html("<em>运行时间  </em>" + day + "d " + hours + "h " + minutes + "m " + seconds + "s");
+            
+            $("#login_ip").html("<em>外网IP </em>" + wanIPaddr);
+            
+            renderPort(data.port);
+            
+            /* 网络连接状态判断    
+            $.getJSON("/cgi-bin/luci/guest/netStatus", null, function(data) {
+                if (data.code == "0") {
+                    $("#inet_status").attr("src", "<%=resource%>/images/bn_inet_link.png");    
+                } else {
+                    $("#inet_status").attr("src", "<%=resource%>/images/bn_inet_error.png");    
+                }
+            });    
+            */
+    });   
+
+</script>
+
+<%include("bottom")%>
+

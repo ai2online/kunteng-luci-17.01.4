@@ -1,0 +1,69 @@
+<%include("top")%>
+<style>
+    textarea{
+        margin-left:20px;
+        padding:10px;
+		line-height: 1.5;
+		border-color: #e8e8e8;
+		outline:none;
+    }
+	
+	.box{
+		padding:30px 20px;
+		
+	}
+</style>
+
+<div class="box">
+	<div class="main">
+
+		<%include("application/menuer")%>
+		
+		<div class="content">
+			<div class="title">
+				<h3>拨号日志</h3>
+			</div>
+			<div class="article">
+				<div class="box">
+					<textarea id="pppoe_log_view" rows="30" cols="100" readonly="readonly"><%:正在获取拨号日志……%></textarea>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+
+	$(function() {
+		get_pppoe_log();
+	});
+
+
+	function get_pppoe_log() {
+	$.ajax({
+		url: '<%=luci.dispatcher.build_url("admin", "network", "get_pppoe_log")%>',
+		cache: false,
+		dataType: "json",
+		data: {token: '<%=token%>'},
+		timeout: 10000,
+		type: "post",
+		success: function(rsp){
+			//console.log(rsp.log);
+			var log = rsp.log;
+			$("#pppoe_log_view").text(log);
+			var textarea = $("#pppoe_log_view").append(" ");
+			textarea.scrollTop(textarea[0].scrollHeight - textarea.height());
+		},
+		error: function(rsp){
+			$("#pppoe_log_view").text("<%:获取拨号日志失败.%>");
+		},
+		ontimeout:function(rsp){
+			$("#pppoe_log_view").text("<%:获取拨号日志超时.%>");
+		}
+	})
+	
+	setTimeout("get_pppoe_log();", 3000);
+}
+</script>
+
+<%include("bottom")%>

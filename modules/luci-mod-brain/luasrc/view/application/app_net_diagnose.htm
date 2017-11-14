@@ -1,0 +1,93 @@
+<%include("top")%>
+<div class="box">
+	<div class="main">
+
+		<%include("application/menuer")%>
+		
+		<div class="content">
+			<div class="title">
+				<h3>网络诊断</h3>
+			</div>
+			<div class="article h514">
+				<div class="diag_img">
+					<p>
+						<!--<span class="decpic pic3" style="width:200px;background:url('<%=resource%>/images/tu_4.png') no-repeat;"></span>-->
+						<!--<a class="inet pic2"><img id="inet_status" src="<%=resource%>/images/bn_inet_link.png" alt=""></a>-->
+						<!--<span class="pic1"><img src="<%=resource%>/images/bn_internet.png" alt=""></span>-->
+						<span><img src="<%=resource%>/images/diagnose-pic.png" alt=""/></span>
+					</p>
+					<ul style="width:100%;">
+						<li style="width:200px;" class="diag-li1">
+							<!-- <span>路由器</span> -->
+						</li>
+						<li style="width:88px;">&nbsp;</li>
+						<li style="width:196px;" class="diag-li2">
+							<!-- <span>互联网</span> -->
+						</li>
+					</ul>
+				</div>
+				<div class="diag" id="diaging">
+					<i><img src="<%=resource%>/images/loading2.gif" alt=""/></i>
+					<p>正在进行网络诊断，请稍后...</p>
+				</div>
+				<div class="diag diaged" id="diaged">
+					<i><img src="<%=resource%>/images/i_success.png" alt=""/></i>
+					<p class="diag_message">恭喜！网络连接正常</p>
+				</div>
+				<div class="btn-cont">
+					<button class="btn btn-center" id="diagbtn">开始诊断</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+	function show_message(code, text) {
+		$("#diaging").css("display","none");
+		$(".btn-cont").css("display","block");
+		$("#diagbtn").html("重新诊断");	
+		$(".diag_message").html(text);
+		
+		if (code != 0) {
+			$(".diag_message").addClass("diag_error");
+			$("#diaged img").attr("src","<%=resource%>/images/i_error.png");
+		}
+		
+		$("#diaged").css("display","block");
+	}
+	
+	$(function(){
+		$("#diagbtn").click(function(){
+			$("#diaging").css("display","block");
+			$(".btn-cont").css("display","none");
+			$("#diaged").css("display","none");
+			$(".diag_message").removeClass("diag_error");
+			$("#diaged img").attr("src","<%=resource%>/images/i_success.png");
+			
+			$.ajax({
+				url: '<%=luci.dispatcher.build_url("guest", "netStatus")%>',
+				cache: false,
+				dataType: "json",			
+				timeout:20000,
+				type: "POST",
+				success: function(rsp){					
+					if (rsp.code == 0) {					
+						show_message(0, "恭喜！网络连接正常")
+					} else {
+						show_message(rsp.code, rsp.msg)
+					}					
+				},
+				error: function(x){
+					show_message(-1, "诊断失败, 请重试")
+				},
+				ontimeout:function(){
+					show_message(-1, "诊断超时, 请重试")
+				}
+			});
+
+		})
+	})
+</script>
+
+<%include("bottom")%>

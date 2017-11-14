@@ -1,0 +1,307 @@
+<%
+    local uci = require "luci.model.uci".cursor()
+    local lanIpAddr = uci:get("network", "lan", "ipaddr")
+    local start = uci:get("dhcp", "lan", "start")%256
+    local limit = uci:get("dhcp", "lan", "limit")
+    local leaseTime   = uci:get("dhcp", "lan", "leasetime")
+
+    local primaryDns  = uci:get("dhcp", "lan", "domainserver")
+    local secondDns
+
+    if primaryDns and primaryDns:match(",") then
+        primaryDns, secondDns = primaryDns:match("(%S+),(%S+)")
+    end
+
+    if luci.http.formvalue("lease") == "1" then
+        local s = require "luci.tools.status"
+
+        luci.http.prepare_content("application/json")
+        luci.http.write_json(s.dhcp_leases())
+        return
+    end
+
+    include("top")
+%>
+<div class="main">
+    <div class="aside">
+        <ul>
+            <%include("settings/menuer")%>
+        </ul>
+    </div>
+
+    <div class="content">
+        <div class="title">
+            <h3>DHCP设置</h3>
+        </div>
+
+        <div class="article">
+            <div class="set-content">
+                <form>
+                    <div class="input-info">
+                        <label>IP分配范围</label>
+                        <span class="dhcp-ip"><%=lanIpAddr:gsub("%d+$", "")%></span>
+                        <input type="text" id="range1" name="range1"/>
+                        <span class="drangespan">到</span>
+                        <span class="drangespan2"><%=lanIpAddr:gsub("%d+$", "")%></span>
+                        <input type="text" id="range2" style="margin-left:14px;" name="range2"/>
+                    </div>
+
+                    <div class="input-info drangediv">
+                        <label>租用时间</label>
+                        <input type="text" name="range3" id="range3"/>
+                        <select id="sel-time" name="sel-time">
+                            <option value="h">小时</option>
+                            <option value="m">分钟</option>
+                        </select>
+                    </div>
+
+                    <div class="input-info" style="margin-top:30px;">
+                        <label>DNS服务器</label>
+                        <input class="inp-checkbox ml10 dhcp-checkbox" type="checkbox" id="dhcpdns-switch" <%if primaryDns then%>checked="checked"<%end%>/>
+                        <label class="dhcp-ser">正常网络环境下,不建议开启本功能.</label>
+                    </div>
+
+                    <div id="dhcpdns" <%if not primaryDns then%>style="display:none;"<%end%>>
+                        <div class="input-info">
+                            <label>首选DNS</label>
+                            <input class="inpsmall" type="text" id="dhcp-dns1" <%if primaryDns then%>value="<%=primaryDns%>"<%end%>/>
+                        </div>
+
+                        <div class="input-info">
+                            <label>备用DNS</label>
+                            <input class="inpsmall" type="text" id="dhcp-dns2" <%if secondDns then%>value="<%=secondDns%>"<%end%>/>
+                            <span style="color:#999;">(选填)</span>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="operate-btn">
+                    <input type="submit" value="保 存" class="off" id="save"/>
+                    <img class="save-loading" style="display:none;" src="<%=resource%>/images/loading.gif" alt=""/>
+                </div>
+            </div>
+
+            <hr class="hr2"/>
+
+            <div id="connect-content" class="d_cont">
+                <p class="d_tit">已分配的DHCP租约</p>
+                <table class="d_tab" id="lease_status_table">
+                    <tr>
+                        <th>序号</th>
+                        <th>IP地址</th>
+                        <th>MAC地址</th>
+                        <th>设备名称</th>
+                        <th width="130">剩余租约</th>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="<%=resource%>/js/validators.js"></script>
+<script type="text/javascript" src="<%=resource%>/xhr.js"></script>
+<script type="text/javascript" src="<%=resource%>/cbi.js"></script>
+<script type="text/javascript">//<![CDATA[
+    XHR.poll(7, '<%=REQUEST_URI%>', {lease: 1}, 
+        function(x, st)
+        {
+            var tb = document.getElementById('lease_status_table');
+            if (st && tb) {
+                /* clear all rows */
+                while( tb.rows.length > 1 )
+                    tb.deleteRow(1);
+
+                for( var i = 0; i < st.length; i++ ) {
+                    var timestr;
+
+                    if (st[i].expires <= 0)    {
+                        timestr = '<em><%:过期%></em>';
+                    } else {
+                        timestr = String.format('%t', st[i].expires);
+                    }
+
+                    var tr = tb.insertRow(-1);
+                        //tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
+
+                    tr.insertCell(-1).innerHTML = i;
+                    tr.insertCell(-1).innerHTML = st[i].ipaddr;
+                    tr.insertCell(-1).innerHTML = st[i].macaddr;
+                    tr.insertCell(-1).innerHTML = st[i].hostname ? st[i].hostname : '?';
+                    tr.insertCell(-1).innerHTML = timestr;
+                }
+
+                if( tb.rows.length == 1 ) {
+                    var tr = tb.insertRow(-1);
+                        //tr.className = 'cbi-section-table-row';
+
+                    var td = tr.insertCell(-1);
+                        td.colSpan = 5;
+                        td.innerHTML = '<em><%:空%></em>';
+                }
+            }
+        }
+    );
+
+    var T_alert = new Toast();
+    T_alert._css.lineHeight = "40px";
+
+    var oldConfigData = {};
+
+    var dhcpInfo = {
+        "start" : "<%=start%>",
+        "limit" : "<%=limit%>",
+        "leasetime" : "<%=leaseTime%>",
+        "primaryDns" : "<%=primaryDns%>",
+        "secondDns" : "<%=secondDns%>",
+    };
+
+    $(function () {
+        $("#range1").val(dhcpInfo.start);
+        $("#range2").val(parseInt(dhcpInfo.start) + parseInt(dhcpInfo.limit));
+//        $("#range3").val(dhcpInfo.leasetime);
+
+        if (dhcpInfo.leasetime.indexOf("h") > 0) {
+            $("#range3").val(parseInt(dhcpInfo.leasetime));
+            $("#sel-time").val("h");
+        } else if(dhcpInfo.leasetime.indexOf("m") > 0) {
+            $("#range3").val(parseInt(dhcpInfo.leasetime));
+            $("#sel-time").val("m");
+        }
+
+        oldConfigData = objCopy(dhcpInfo);
+    });
+
+    $("#dhcpdns-switch").click(function(){
+        $("#save-btn").css("display","block");
+        showDnsBox("dhcpdns-switch","dhcpdns");
+    });
+
+    function showDnsBox(dnsswitch,ele) {
+        var dns_switch = document.getElementById(dnsswitch);
+        if (dns_switch.checked == true) {
+            $("#" + ele).css("display", "block");
+        } else {
+            $("#" + ele).css("display", "none");
+        }
+    }
+
+    function checkInputData() {
+        var start = $("#range1").val();
+        var end = $("#range2").val();
+        var time_number = $("#range3").val();
+        var time_select = $("#sel-time").val();
+
+        var reg = /^[0-9]+$/;
+
+        if (start == "" || end == "") {
+            T_alert.show("起始地址或结束地址不能为空",2000);
+            return false;
+        } else if (!reg.test(start) || !reg.test(end)) {
+            T_alert.show("起始地址或结束地址数据无效",2000);
+            return false;
+        } else if (parseInt(start) < 1 || parseInt(start) > 254 || parseInt(end) < 1 || parseInt(end) > 254) {
+            T_alert.show("起始地址或结束地址数据无效",2000);
+            return false;
+        } else if (parseInt(start) >= parseInt(end)) {
+            T_alert.show("起始地址或结束地址数据无效",2000);
+            return false;
+        } else if(time_number == ""){
+            T_alert.show("租约不能为空",2000);
+            return false;
+        } else if (!reg.exec(time_number) || time_number == 0) {
+            T_alert.show("租约无效",2000);
+            return false;
+        } else if (time_select == "h") {
+            if (parseInt(time_number) > 24) {
+                T_alert.show("租约不能超过24小时",2000);
+                return false;
+            }
+        } else if (time_select == "m") {
+            if (parseInt(time_number) > 1440) {
+                T_alert.show("租约不能超过24小时",2000);
+                return false;
+            }
+
+            if (parseInt(time_number) <= 1) {
+                T_alert.show("DHCP最小租约为2分钟",2000);
+                return false;
+            }
+        }
+
+        dhcpInfo.start = start;
+        dhcpInfo.limit = (parseInt(end) - parseInt(start)).toString();
+        dhcpInfo.leasetime = time_number + time_select;
+        dhcpInfo.primaryDns = "";
+        dhcpInfo.secondDns = "";
+
+        // dns
+        if ($("#dhcpdns-switch").length > 0 && $("#dhcpdns-switch").prop("checked")) {
+            dhcpInfo.primaryDns = $("#dhcp-dns1").val();
+            dhcpInfo.secondDns = $("#dhcp-dns2").val();
+
+            if (dhcpInfo.primaryDns == "") {
+                T_alert.show("首选DNS格式不能为空",2000);
+                $("#dhcp-dns1").focus();
+                return false;
+            }
+
+            if (!validators.ipaddr(dhcpInfo.primaryDns)) {
+                T_alert.show("首选DNS格式不正确",2000);
+                $("#dhcp-dns1").focus();
+                return false;
+            }
+
+            if (dhcpInfo.secondDns != "") {
+                if (!validators.ipaddr(dhcpInfo.secondDns)) {
+                    T_alert.show("备用DNS格式不正确",2000);
+                    $("#dhcp-dns2").focus();
+                    return false;
+                }
+            }
+        }
+
+        if (validators.equal(oldConfigData, dhcpInfo)) {
+            T_alert.show("配置未改变",2000);
+            return false;
+        }
+
+        return true;
+    }
+
+    $("#save").click(function () {
+        if (!checkInputData()){return false;}
+
+        var request_data = JSON.stringify(dhcpInfo);
+        loadSave("before", "save");
+        $.ajax({
+            url: '<%=luci.dispatcher.build_url("admin", "system", "dhcp_setup")%>',
+            cache: false,
+            dataType: "json",
+            data: {token: '<%=token%>',  reqdata: request_data},
+            timeout:20000,
+            type: "POST",
+            success: function(rsp){
+                if (rsp.result == true) {
+                    T_alert.show("保存成功！",2000);
+                    oldConfigData = objCopy(dhcpInfo);
+                } else {
+                    T_alert.show("保存失败！",2000);
+                }
+                loadSave("after", "save");
+            },
+            error: function(x){
+                loadSave("after", "save");
+                T_alert.show("保存错误！",2000);
+            },
+            ontimeout:function(){
+                loadSave("after", "save");
+                T_alert.show("保存超时！",2000);
+            }
+        });
+
+    });
+
+</script>
+<%include("bottom")%>
