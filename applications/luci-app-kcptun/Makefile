@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI Support for kcptun
-LUCI_DEPENDS:=@PACKAGE_luci-mod-brain +xkcptun
+LUCI_DEPENDS:= +xkcptun
 
 include ../../luci.mk
 
