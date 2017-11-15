@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI Support for apfree_wifidog
-LUCI_DEPENDS:=@PACKAGE_luci-mod-brain
+LUCI_DEPENDS:= +apfree_wifidog
 
 include ../../luci.mk
 
