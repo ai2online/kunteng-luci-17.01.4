@@ -31,7 +31,7 @@ local descr = [[
 </p>
 ]]
 
-m = Map("wifidog", translate("<img src=\"/luci-static/resources/icons/apfreeWifiDog.png\" alt=\"\" />ApFree WifiDog"), translate(descr))
+m = Map("wifidog", translate("<img src=\"/luci-static/resources/icons/apfreeWifiDog.png\" alt=\"\" />ApFree WiFiDog"), translate(descr))
 
 s = m:section(TypedSection, "wifidog", translate("运行状态"), get_status())
 s.anonymous = true
