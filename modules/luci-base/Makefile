@@ -15,9 +15,8 @@ LUCI_TITLE:=LuCI core libraries
 LUCI_DEPENDS:=+lua +libuci-lua +luci-lib-nixio +luci-lib-ip +rpcd +libubus-lua +luci-lib-jsonc
 
 PKG_SOURCE:=LuaSrcDiet-0.12.1.tar.bz2
-PKG_SOURCE_URL:=http://openwrt.kunteng.org/sources/
-PKG_HASH:=ed7680f2896269ae8633756e7edcf09050812f78c8f49e280e63c30d14f35aea
-PKG_LICENSE:=Apache-2.0
+PKG_SOURCE_URL:=https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/luasrcdiet
+PKG_MD5SUM:=ed7680f2896269ae8633756e7edcf09050812f78c8f49e280e63c30d14f35aea
 
 HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/LuaSrcDiet-0.12.1
 
@@ -26,7 +25,6 @@ include $(INCLUDE_DIR)/host-build.mk
 define Package/luci-base/conffiles
 /etc/luci-uploads
 /etc/config/luci
-/etc/config/ucitrack
 endef
 
 include ../../luci.mk
